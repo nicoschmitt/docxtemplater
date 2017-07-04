@@ -5,7 +5,7 @@
 /* eslint-disable no-console */
 // Because we are in the cli
 
-const fs = require("fs");
+const fs = require("mz/fs");
 const JSZip = require("jszip");
 const DocUtils = require("./doc-utils");
 const Docxtemplater = require("./docxtemplater");
@@ -67,43 +67,47 @@ if (debugBool) {
 	console.info("loading docx:" + inputFileName);
 }
 
-const content = fs.readFileSync(currentPath + inputFileName, "binary");
-const zip = new JSZip(content);
-const doc = new Docxtemplater();
+async function main() {
+	const content = await fs.readFile(currentPath + inputFileName, "binary");
+	const zip = await JSZip.loadAsync(content);
+	const doc = new Docxtemplater();
 
-if (ImageModule && sizeOf) {
-	const opts = {};
-	opts.centered = false;
-	opts.fileType = fileType;
+	if (ImageModule && sizeOf) {
+		const opts = {};
+		opts.centered = false;
+		opts.fileType = fileType;
 
-	opts.getImage = function (tagValue) {
-		const filePath = path.resolve(imageDir, tagValue);
+		opts.getImage = function (tagValue) {
+			const filePath = path.resolve(imageDir, tagValue);
 
-		if (filePath.indexOf(imageDir) !== 0) {
-			throw new Error("Images must be stored under folder: " + imageDir);
-		}
+			if (filePath.indexOf(imageDir) !== 0) {
+				throw new Error("Images must be stored under folder: " + imageDir);
+			}
 
-		return fs.readFileSync(filePath, "binary");
-	};
+			return fs.readFileSync(filePath, "binary");
+		};
 
-	opts.getSize = function (img, tagValue) {
-		const filePath = path.resolve(imageDir, tagValue);
+		opts.getSize = function (img, tagValue) {
+			const filePath = path.resolve(imageDir, tagValue);
 
-		if (filePath.indexOf(imageDir) !== 0) {
-			throw new Error("Images must be stored under folder: " + imageDir);
-		}
+			if (filePath.indexOf(imageDir) !== 0) {
+				throw new Error("Images must be stored under folder: " + imageDir);
+			}
 
-		const dimensions = sizeOf(filePath);
-		return [dimensions.width, dimensions.height];
-	};
+			const dimensions = sizeOf(filePath);
+			return [dimensions.width, dimensions.height];
+		};
 
-	const imageModule = new ImageModule(opts);
-	doc.attachModule(imageModule);
+		const imageModule = new ImageModule(opts);
+		doc.attachModule(imageModule);
+	}
+
+	doc.loadZip(zip);
+	doc.setData(jsonInput);
+	await doc.render();
+	const output = await doc.getZip().generateAsync({type: "nodebuffer", compression: "DEFLATE"});
+
+	await fs.writeFile(currentPath + outputFile, output);
 }
 
-doc.loadZip(zip);
-doc.setData(jsonInput);
-doc.render();
-const output = doc.getZip().generate({type: "nodebuffer", compression: "DEFLATE"});
-
-fs.writeFileSync(currentPath + outputFile, output);
+main();

@@ -36,19 +36,16 @@ const Docxtemplater = class Docxtemplater {
 		return this;
 	}
 	loadZip(zip) {
-		if (zip.loadAsync) {
-			throw new XTInternalError("Docxtemplater doesn't handle JSZip version >=3, see changelog");
-		}
 		this.zip = zip;
 		this.updateFileTypeConfig();
 		return this;
 	}
-	compileFile(fileName) {
-		const currentFile = this.createTemplateClass(fileName);
+	async compileFile(fileName) {
+		const currentFile = await this.createTemplateClass(fileName);
 		currentFile.parse();
 		this.compiled[fileName] = currentFile;
 	}
-	compile() {
+	async compile() {
 		this.options.xmlFileNames = [];
 		this.modules = this.fileTypeConfig.baseModules.map(function (moduleFunction) {
 			return moduleFunction();
@@ -66,11 +63,11 @@ const Docxtemplater = class Docxtemplater {
 		this.setModules({compiled: this.compiled});
 		// Loop inside all templatedFiles (ie xml files with content).
 		// Sometimes they don't exist (footer.xml for example)
-		this.templatedFiles.forEach((fileName) => {
+		for (const fileName of this.templatedFiles) {
 			if (this.zip.files[fileName] != null) {
-				this.compileFile(fileName);
+				await this.compileFile(fileName);
 			}
-		});
+		}
 		return this;
 	}
 	updateFileTypeConfig() {
@@ -96,8 +93,8 @@ const Docxtemplater = class Docxtemplater {
 		this.fileTypeConfig = this.options.fileTypeConfig || Docxtemplater.FileTypeConfig[this.fileType];
 		return this;
 	}
-	render() {
-		this.compile();
+	async render() {
+		await this.compile();
 
 		this.mapper = this.modules.reduce(function (value, module) {
 			return module.getRenderedMap(value);
@@ -128,8 +125,8 @@ const Docxtemplater = class Docxtemplater {
 	getZip() {
 		return this.zip;
 	}
-	createTemplateClass(path) {
-		const usedData = this.zip.files[path].asText();
+	async createTemplateClass(path) {
+		const usedData = await this.zip.files[path].async("string");
 		return this.createTemplateClassFromContent(usedData, path);
 	}
 	createTemplateClassFromContent(content, filePath) {
@@ -143,8 +140,8 @@ const Docxtemplater = class Docxtemplater {
 		xmltOptions.modules = this.modules;
 		return new Docxtemplater.XmlTemplater(content, xmltOptions);
 	}
-	getFullText(path) {
-		return this.createTemplateClass(path || this.fileTypeConfig.textPath).getFullText();
+	async getFullText(path) {
+		return await this.createTemplateClass(path || this.fileTypeConfig.textPath).getFullText();
 	}
 	getTemplatedFiles() {
 		this.templatedFiles = this.fileTypeConfig.getTemplatedFiles(this.zip);
