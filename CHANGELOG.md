@@ -1,4 +1,14 @@
-### unreleased (master branch)
+### 3.1.6
+
+Show clear error if file is ODT, escape " as `&quot;`
+
+### 3.1.5
+
+Template values in docProps/core.xml and docProps/app.xml
+
+### 3.1.4
+
+Add possibility to have RenderingErrors (if data is incorrect)
 
 ### 3.1.3
 
