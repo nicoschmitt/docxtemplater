@@ -8,7 +8,7 @@ const expect = chai.expect;
 const JSZip = require("jszip");
 const xmlPrettify = require("./xml-prettify");
 const fs = require("fs");
-const _ = require("lodash");
+const {get, unset, omit, uniq} = require("lodash");
 let countFiles = 1;
 let allStarted = false;
 let examplesDirectory;
@@ -35,59 +35,85 @@ function createXmlTemplaterDocx(content, options) {
 		.parse();
 }
 
-function shouldBeSame(options) {
-	const zip = options.doc.getZip();
-	const expectedName = options.expectedName;
-	let expectedZip;
+function writeFile(expectedName, zip) {
 	const writeFile = path.resolve(examplesDirectory, "..", expectedName);
-
 	if (fs.writeFileSync) {
 		fs.writeFileSync(
 			writeFile,
 			zip.generate({type: "nodebuffer", compression: "DEFLATE"})
 		);
 	}
+}
+function unlinkFile(expectedName) {
+	const writeFile = path.resolve(examplesDirectory, "..", expectedName);
+	if (fs.unlinkSync) {
+		try {
+			fs.unlinkSync(
+				writeFile,
+			);
+		}
+		catch (e) {
+			if (e.code !== "ENOENT") {
+				throw e;
+			}
+		}
+	}
+}
+
+function shouldBeSame(options) {
+	const zip = options.doc.getZip();
+	const expectedName = options.expectedName;
+	let expectedZip;
 
 	try {
 		expectedZip = docX[expectedName].zip;
 	}
 	catch (e) {
-		console.log(JSON.stringify({msg: "Expected name does not match", expectedName}));
+		writeFile(expectedName, zip);
+		console.log(JSON.stringify({msg: "Expected file does not exists", expectedName}));
 		throw e;
 	}
 
 	try {
-		Object.keys(zip.files).map(function (filePath) {
+		uniq(Object.keys(zip.files).concat(Object.keys(expectedZip.files))).map(function (filePath) {
 			const suffix = `for "${filePath}"`;
+			expect(expectedZip.files[filePath]).to.be.an("object", `The file ${filePath} doesn't exist on ${expectedName}`);
+			expect(zip.files[filePath]).to.be.an("object", `The file ${filePath} doesn't exist on generated file`);
 			expect(zip.files[filePath].name).to.be.equal(expectedZip.files[filePath].name, `Name differs ${suffix}`);
 			expect(zip.files[filePath].options.dir).to.be.equal(expectedZip.files[filePath].options.dir, `IsDir differs ${suffix}`);
 			const text1 = zip.files[filePath].asText().replace(/\n|\t/g, "");
 			const text2 = expectedZip.files[filePath].asText().replace(/\n|\t/g, "");
-			if (text1 !== text2 && filePath.indexOf(".png") === -1) {
+			if (filePath.indexOf(".png") !== -1) {
+				expect(text1.length).to.be.equal(text2.length, `Content differs ${suffix}`);
+				expect(text1).to.be.equal(text2, `Content differs ${suffix}`);
+			}
+			else {
+				if (text1 === text2) {
+					return;
+				}
 				const pText1 = xmlPrettify(text1, options);
 				const pText2 = xmlPrettify(text2, options);
 				expect(pText1).to.be.equal(pText2, `Content differs ${suffix} lengths: "${text1.length}", "${text2.length}"`);
 			}
-			else {
-				expect(text1.length).to.be.equal(text2.length, `Content differs ${suffix}`);
-			}
 		});
 	}
 	catch (e) {
-		console.log(JSON.stringify({msg: "Expected name does not match", expectedName}));
+		writeFile(expectedName, zip);
+		console.log(JSON.stringify({msg: "Expected file differs from actual file", expectedName}));
 		throw e;
 	}
+	unlinkFile(expectedName);
 }
 
 function checkLength(e, expectedError, propertyPath) {
 	const propertyPathLength = propertyPath + "Length";
-	const property = _.get(e, propertyPath);
-	const expectedPropertyLength = _.get(expectedError, propertyPathLength);
+	const property = get(e, propertyPath);
+	const expectedPropertyLength = get(expectedError, propertyPathLength);
 	if (property && expectedPropertyLength) {
 		expect(expectedPropertyLength).to.be.a("number", JSON.stringify(expectedError.properties));
 		expect(expectedPropertyLength).to.equal(property.length);
-		_.unset(e, propertyPath);
-		_.unset(expectedError, propertyPathLength);
+		unset(e, propertyPath);
+		unset(expectedError, propertyPathLength);
 	}
 }
 
@@ -98,7 +124,7 @@ function cleanError(e, expectedError) {
 	}
 	delete e.properties.offset;
 	delete expectedError.properties.offset;
-	e = _.omit(e, ["line", "sourceURL", "stack"]);
+	e = omit(e, ["line", "sourceURL", "stack"]);
 	if (e.properties.postparsed) {
 		e.properties.postparsed.forEach(function (p) {
 			delete p.lIndex;
@@ -222,7 +248,47 @@ function endLoadFile(change) {
 	}
 }
 
+function endsWith(str, suffix) {
+	return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
+function startsWith(str, suffix) {
+	return str.indexOf(suffix) === 0;
+}
+function walk(dir) {
+	let results = [];
+	const list = fs.readdirSync(dir);
+	list.forEach(function (file) {
+		file = dir + "/" + file;
+		const stat = fs.statSync(file);
+		if (stat && stat.isDirectory()) {
+			results = results.concat(walk(file));
+		}
+		else {
+			results.push(file);
+		}
+	});
+	return results;
+}
+
 function start() {
+	const fileNames = walk(examplesDirectory);
+	fileNames.forEach(function (fullFileName) {
+		const fileName = fullFileName.replace(examplesDirectory + "/", "");
+		let callback;
+		if (startsWith(fileName, ".")) {
+			return;
+		}
+		if (endsWith(fileName, ".docx") || endsWith(fileName, ".pptx")) {
+			callback = loadDocument;
+		}
+		if (endsWith(fileName, ".png")) {
+			callback = loadImage;
+		}
+		if (!callback) {
+			return;
+		}
+		loadFile(fileName, callback);
+	});
 	allStarted = true;
 	endLoadFile(-1);
 }
@@ -237,7 +303,7 @@ function removeSpaces(text) {
 
 function makeDocx(name, content) {
 	const zip = new JSZip();
-	zip.file("word/document.xml", content);
+	zip.file("word/document.xml", content, {createFolders: true});
 	const base64 = zip.generate({type: "string"});
 	return load(name, base64, "docx", docX);
 }

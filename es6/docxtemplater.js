@@ -1,7 +1,7 @@
 "use strict";
 
 const DocUtils = require("./doc-utils");
-const {XTInternalError, throwFileTypeNotIdentified} = require("./errors");
+const {XTInternalError, throwFileTypeNotIdentified, throwFileTypeNotHandled} = require("./errors");
 DocUtils.traits = require("./traits");
 DocUtils.moduleWrapper = require("./module-wrapper");
 const wrapper = DocUtils.moduleWrapper;
@@ -18,6 +18,11 @@ const Docxtemplater = class Docxtemplater {
 	setModules(obj) {
 		this.modules.forEach((module) => {
 			module.set(obj);
+		});
+	}
+	sendEvent(eventName) {
+		this.modules.forEach((module) => {
+			module.on(eventName);
 		});
 	}
 	attachModule(module) {
@@ -77,6 +82,7 @@ const Docxtemplater = class Docxtemplater {
 		const fileTypeIdentifiers = {
 			docx: "word/document.xml",
 			pptx: "ppt/presentation.xml",
+			odt: "mimetype",
 		};
 
 		const fileType = Object.keys(fileTypeIdentifiers).reduce((fileType, key) => {
@@ -89,6 +95,9 @@ const Docxtemplater = class Docxtemplater {
 			return fileType;
 		}, null);
 
+		if (fileType === "odt") {
+			throwFileTypeNotHandled(fileType);
+		}
 		if (!fileType) {
 			throwFileTypeNotIdentified();
 		}
@@ -109,8 +118,9 @@ const Docxtemplater = class Docxtemplater {
 			const currentFile = this.compiled[from];
 			currentFile.setTags(mapped.data);
 			currentFile.render(to);
-			this.zip.file(to, currentFile.content);
+			this.zip.file(to, currentFile.content, {createFolders: true});
 		});
+		this.sendEvent("syncing-zip");
 		this.syncZip();
 		return this;
 	}
@@ -118,7 +128,7 @@ const Docxtemplater = class Docxtemplater {
 		Object.keys(this.xmlDocuments).forEach((fileName) => {
 			this.zip.remove(fileName);
 			const content = DocUtils.xml2str(this.xmlDocuments[fileName]);
-			return this.zip.file(fileName, content, {});
+			return this.zip.file(fileName, content, {createFolders: true});
 		});
 	}
 	setData(data) {

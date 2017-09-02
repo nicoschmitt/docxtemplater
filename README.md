@@ -1,7 +1,7 @@
 docxtemplater
 =============
 
-[![Build Status](https://travis-ci.org/open-xml-templating/docxtemplater.svg?branch=master&style=flat)](https://travis-ci.org/open-xml-templating/docxtemplater) [![Download count](https://img.shields.io/npm/dm/docxtemplater.svg?style=flat)](https://www.npmjs.org/package/docxtemplater) [![Current tag](https://img.shields.io/npm/v/docxtemplater.svg?style=flat)](https://www.npmjs.org/package/docxtemplater) [![Issues closed](https://issuestats.com/github/open-xml-templating/docxtemplater/badge/issue?style=flat)](https://issuestats.com/github/open-xml-templating/docxtemplater) [![CDNJS version](https://img.shields.io/cdnjs/v/docxtemplater.svg)](https://cdnjs.com/libraries/docxtemplater)
+[![Build Status](https://travis-ci.org/open-xml-templating/docxtemplater.svg?branch=master&style=flat)](https://travis-ci.org/open-xml-templating/docxtemplater) [![Download count](https://img.shields.io/npm/dm/docxtemplater.svg?style=flat)](https://www.npmjs.org/package/docxtemplater) [![Current tag](https://img.shields.io/npm/v/docxtemplater.svg?style=flat)](https://www.npmjs.org/package/docxtemplater) [![CDNJS version](https://img.shields.io/cdnjs/v/docxtemplater.svg)](https://cdnjs.com/libraries/docxtemplater)
 
 ![docxtemplater logo](https://raw.githubusercontent.com/open-xml-templating/docxtemplater/master/logo-small.png)
 
@@ -12,13 +12,13 @@ docxtemplater
 Features
 --------
 
-[Demo Site](http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html)
+[Demo Site](https://docxtemplater.com/demo)
 
--	<a href="http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html#variables">Replace a {placeholder} by a value</a>
--	<a href="http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html#loops">Use loops: {#users} {name} {/users} </a>
--	<a href="http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html#tables">Use loops in tables to generate columns</a>
--	<a href="http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html#parsing">Use expressions {product.unit_price*product.count} with angular Parsing</a>
--	<a href="http://javascript-ninja.fr/docxtemplater/v3/examples/demo.html#rawxml">Insert custom XML {@rawXml} (for formatted text for example)</a>
+-	<a href="https://docxtemplater.com/demo#simple">Replace a {placeholder} by a value</a>
+-	<a href="https://docxtemplater.com/demo#loops">Use loops: {#users} {name} {/users} </a>
+-	<a href="https://docxtemplater.com/demo#loop-table">Use loops in tables to generate columns</a>
+-	<a href="https://docxtemplater.com/demo#conditions">Use conditions (if users.length>3) with angular Parsing</a>
+-	<a href="https://docxtemplater.com/demo#xml-insertion">Insert custom XML {@rawXml} (for formatted text for example)</a>
 
 Quickstart
 ----------
@@ -60,8 +60,9 @@ Modules developped by docxtemplater core team members :
 -	Image module using the syntax: `{%image}`, https://docxtemplater.com/modules/image/
 -	Html Module to insert formatted text in a docx document https://docxtemplater.com/modules/html/
 -	Slides Module to create multiple slides dynamically https://docxtemplater.com/modules/slides/
--	Subtemplater Module to include a document inside an other document https://docxtemplater.com/modules/subtemplate
+-	Subtemplate Module to include a document inside an other document https://docxtemplater.com/modules/subtemplate
 -	Word-Run Module to include raw runs (<w:r>) inside the document. This makes it possible to include styled text without having to remove the enclosing paragraph like in the {@rawXml} tag. https://docxtemplater.com/modules/subtemplate
+-	QrCode Module to replace an image, keeping any existing properties https://docxtemplater.com/modules/qrcode
 -	Error Location Module to show the errors in the template with comments inside the template https://docxtemplater.com/modules/error-location
 
 User contributed modules :

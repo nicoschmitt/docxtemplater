@@ -20,6 +20,13 @@ function XTTemplateError(message) {
 }
 XTTemplateError.prototype = new XTError();
 
+function RenderingError(message) {
+	this.name = "RenderingError";
+	this.message = message;
+	this.stack = (new Error(message)).stack;
+}
+RenderingError.prototype = new XTError();
+
 function XTScopeParserError(message) {
 	this.name = "ScopeParserError";
 	this.message = message;
@@ -192,11 +199,19 @@ function throwLocationInvalid(part) {
 	throw new XTInternalError(`Location should be one of "start" or "end" (given : ${part.location})`);
 }
 
-function throwFileTypeNotIdentified(part) {
+function throwFileTypeNotHandled(fileType) {
+	const err = new XTInternalError(`The filetype "${fileType}" is not handled by docxtemplater`);
+	err.properties = {
+		id: "filetype_not_handled",
+		explanation: `The file you are trying to generate is of type "${fileType}", but only docx and pptx formats are handled`,
+	};
+	throw err;
+}
+
+function throwFileTypeNotIdentified() {
 	const err = new XTInternalError("The filetype for this file could not be identified, is this file corrupted ?");
 	err.properties = {
-		part,
-		id: "malformed_xml",
+		id: "filetype_not_identified",
 	};
 	throw err;
 }
@@ -206,6 +221,7 @@ module.exports = {
 	XTTemplateError,
 	XTInternalError,
 	XTScopeParserError,
+	RenderingError,
 	throwMultiError,
 	throwXmlTagNotFound,
 	throwDecodeUTF8Error,
@@ -220,5 +236,6 @@ module.exports = {
 	getUnclosedTagException,
 	throwMalformedXml,
 	throwFileTypeNotIdentified,
+	throwFileTypeNotHandled,
 	throwLocationInvalid,
 };
